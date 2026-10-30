@@ -1,6 +1,6 @@
 /* Alch Scout — GitHub Pages compatible; no API key or backend required. */
 'use strict';
-const API = 'https://prices.runescape.wiki/api/v1/osrs';
+const API = 'https://prices.runescape.wiki/api/v2/osrs';
 const $ = id => document.getElementById(id);
 const fmt = n => Math.round(n).toLocaleString('en-US');
 const fields = ['budget','sort','cushion','minVolume','maxAge','fireStaff','f2p'];
@@ -92,10 +92,22 @@ async function refresh() {
   if(inProgress)return;
   inProgress=true;$('refresh').disabled=true;$('status').className='status';$('status').textContent='● Loading market data…';
   try{
-    const [mapping,latest,hourly]=await Promise.all([getJson('mapping'),getJson('latest'),getJson('1h')]);
-    if(!Array.isArray(mapping)||!latest.data||!hourly.data)throw new Error('Unexpected market API response.');
-    market={mapping,latest,hourly};
-    $('updated').textContent=`Updated ${new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'})}`;
+    let snapshot;
+    try {
+      const response = await fetch(`./data/market.json?t=${Date.now()}`, {cache:'no-store'});
+      if (!response.ok) throw new Error(`Cached market data returned ${response.status}`);
+      snapshot = await response.json();
+      if (!Array.isArray(snapshot.mapping) || !snapshot.latest?.data || !snapshot.hourly?.data) throw new Error('Cached market data is malformed');
+    } catch (cachedError) {
+      try {
+        const [mapping,latest,hourly] = await Promise.all([getJson('mapping'),getJson('latest'),getJson('1h')]);
+        snapshot = {mapping,latest,hourly,fetchedAt:new Date().toISOString()};
+      } catch (liveError) {
+        throw new Error(`Cached feed: ${cachedError.message}; live feed: ${liveError.message}`);
+      }
+    }
+    market={mapping:snapshot.mapping,latest:snapshot.latest,hourly:snapshot.hourly};
+    $('updated').textContent=`Price snapshot ${new Date(snapshot.fetchedAt || Date.now()).toLocaleString()}`;
     render();
   }catch(err){$('status').className='status error';$('status').textContent='Market data unavailable';$('cards').replaceChildren(el('p','empty',`Could not load prices: ${err.message}. Check your internet connection and try again.`));}
   finally{inProgress=false;$('refresh').disabled=false;}
