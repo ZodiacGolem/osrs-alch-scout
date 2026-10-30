@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101721">
+  <meta name="description" content="Discover the five best free-to-play OSRS high-alchemy opportunities using live Grand Exchange prices, rune costs, trade volume, and your GP budget.">
+  <title>Alch Scout | F2P OSRS High Alch Profit Checker</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <main class="wrap">
+    <header class="top">
+      <div><p class="eyebrow">OLD SCHOOL RUNESCAPE · FREE-TO-PLAY</p><h1>Alch <span>Scout</span></h1><p class="sub">Find the top 5 profitable F2P high alchs with live Grand Exchange data.</p></div>
+      <div class="status" id="status" role="status" aria-live="polite">Ready to fetch prices</div>
+    </header>
+    <section class="settings" aria-label="Profit calculator settings">
+      <div class="field"><label for="budget">Available GP</label><input id="budget" type="number" min="1" step="1000" value="1000000"></div>
+      <div class="field"><label for="sort">Rank by</label><select id="sort"><option value="batch">Total profit for budget</option><option value="each">Profit per alch</option><option value="roi">Return on investment</option></select></div>
+      <div class="field"><label for="cushion">Price cushion (GP)</label><input id="cushion" type="number" min="0" step="1" value="10"></div>
+      <div class="field"><label for="minVolume">Minimum hourly volume</label><input id="minVolume" type="number" min="0" step="10" value="100"></div>
+      <div class="field"><label for="maxAge">Max price age (minutes)</label><input id="maxAge" type="number" min="5" max="1440" value="120"></div>
+      <div class="field"><label for="fireStaff">Fire rune cost</label><select id="fireStaff"><option value="staff">Fire staff equipped (0 GP)</option><option value="runes">Use 5 fire runes per cast</option></select></div>
+      <div class="field check"><label><input id="f2p" type="checkbox" checked> F2P items only</label><small>Enabled by default for your account type.</small></div>
+      <div class="field action"><button id="refresh" type="button">↻ Refresh prices</button><small id="updated">Not refreshed yet</small></div>
+    </section>
+    <section class="stats" aria-label="Market overview">
+      <article><span>Nature rune (instant buy)</span><strong id="natureCost">—</strong></article>
+      <article><span>Estimated cost per cast</span><strong id="castCost">—</strong></article>
+      <article><span>Profitable items found</span><strong id="matches">—</strong></article>
+      <article><span>Best estimated batch</span><strong id="bestBatch">—</strong></article>
+    </section>
+    <section class="results">
+      <div class="sectionTitle"><div><p class="eyebrow">LIVE OPPORTUNITIES</p><h2>Top 5 high alchs</h2></div><span class="pill">No membership needed by default</span></div>
+      <p class="hint">Buy estimate = higher of latest instant-buy price and hourly average instant-buy price, plus your cushion. The estimate favors safer buy pricing over optimistic margins.</p>
+      <div id="cards" class="cards" aria-live="polite"><p class="empty">Fetching current market prices…</p></div>
+    </section>
+    <footer><p>Data provided by the <a href="https://oldschool.runescape.wiki/w/RuneScape:Real-time_Prices" target="_blank" rel="noopener">OSRS Wiki Prices API</a>. These are estimates, not guaranteed GE fills. Buy limits are per item and replenish over time. No Grand Exchange taxes are applied to High Alchemy.</p><p>Not affiliated with or endorsed by Jagex.</p></footer>
+  </main>
+</body>
+</html>
