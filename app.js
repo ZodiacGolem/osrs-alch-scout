@@ -1,6 +1,6 @@
 /* Alch Scout — GitHub Pages compatible; no API key or backend required. */
 'use strict';
-const API = 'https://prices.runescape.wiki/api/v2/osrs';
+const API = 'https://prices.runescape.wiki/api/v1/osrs';
 const $ = id => document.getElementById(id);
 const fmt = n => Math.round(n).toLocaleString('en-US');
 const fields = ['budget','sort','cushion','minVolume','maxAge','fireStaff','f2p'];
