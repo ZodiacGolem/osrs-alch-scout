@@ -4,7 +4,16 @@ const API = 'https://prices.runescape.wiki/api/v2/osrs';
 const $ = id => document.getElementById(id);
 const fmt = n => Math.round(n).toLocaleString('en-US');
 const fields = ['budget','sort','cushion','minVolume','maxAge','fireStaff','f2p'];
-let market = null, inProgress = false;
+let market = null, inProgress = false, marketFetchedAt = null;
+function showFreshness() {
+  const target = $('marketFreshness');
+  if (!marketFetchedAt) {target.textContent = 'Last market update: unavailable'; return;}
+  const minutes = Math.max(0, Math.floor((Date.now() - marketFetchedAt.getTime()) / 60000));
+  const age = minutes < 1 ? 'less than a minute ago' : minutes === 1 ? '1 minute ago' : `${minutes} minutes ago`;
+  const level = minutes >= 30 ? 'STALE' : minutes >= 15 ? 'DELAYED' : 'FRESH';
+  target.textContent = `Last market update: ${marketFetchedAt.toLocaleString()} (${age}) · ${level}${minutes >= 30 ? ' — check prices before buying' : ''}`;
+  target.style.color = minutes >= 30 ? '#f87171' : minutes >= 15 ? '#fbbf24' : '#86efac';
+}
 
 async function getJson(path) {
   const response = await fetch(`${API}/${path}`, {headers: {'Accept':'application/json'}});
@@ -107,6 +116,9 @@ async function refresh() {
       }
     }
     market={mapping:snapshot.mapping,latest:snapshot.latest,hourly:snapshot.hourly};
+    marketFetchedAt = new Date(snapshot.fetchedAt);
+    if (!Number.isFinite(marketFetchedAt.getTime())) marketFetchedAt = null;
+    showFreshness();
     $('updated').textContent=`Price snapshot ${new Date(snapshot.fetchedAt || Date.now()).toLocaleString()}`;
     render();
   }catch(err){$('status').className='status error';$('status').textContent='Market data unavailable';$('cards').replaceChildren(el('p','empty',`Could not load prices: ${err.message}. Check your internet connection and try again.`));}
@@ -116,4 +128,4 @@ fields.forEach(id=>$(id).addEventListener(id==='f2p'||id==='sort'||id==='fireSta
 $('refresh').addEventListener('click',refresh);
 refresh();
 // Refresh at a responsible interval while visible (not every second).
-setInterval(()=>{if(!document.hidden)refresh();},60000);
+setInterval(()=>{showFreshness();if(!document.hidden)refresh();},60000);
