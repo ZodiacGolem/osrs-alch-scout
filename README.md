@@ -17,16 +17,6 @@ Find the top five profitable **free-to-play** items to high alch in Old School R
 - Automatic refresh every minute while the page is visible
 - Mobile-friendly, no sign-in, no backend, no paid hosting
 
-## Host on GitHub Pages
-
-1. Create a **public** repository on GitHub named `osrs-alch-scout`.
-2. Upload `index.html`, `styles.css`, and `app.js` to the **root** of the repository (not inside another folder). You can also upload this README.
-3. Open repository **Settings → Pages**.
-4. Under **Build and deployment**, choose **Deploy from a branch**, select `main` and `/(root)`, then **Save**.
-5. After GitHub publishes your site, bookmark `https://YOUR-USERNAME.github.io/osrs-alch-scout/`.
-
-If you change the repository name, the last part of the URL changes too. If the site returns 404 immediately after publishing, check GitHub Pages status and try again after deployment completes.
-
 ## How profit is estimated
 
 - **Buy estimate** = `ceil(max(latest instant-buy price, 1-hour average instant-buy price) + cushion)`
