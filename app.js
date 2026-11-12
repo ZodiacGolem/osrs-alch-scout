@@ -4,7 +4,7 @@ const API = 'https://prices.runescape.wiki/api/v2/osrs';
 const $ = id => document.getElementById(id);
 const fmt = n => Math.round(n).toLocaleString('en-US');
 const fields = ['budget','sort','cushion','minVolume','maxAge','fireStaff','f2p'];
-let market = null, inProgress = false, marketFetchedAt = null;
+let market = null, inProgress = false, marketFetchedAt = null, marketSource = 'snapshot';
 function showFreshness() {
   const target = $('marketFreshness');
   if (!marketFetchedAt) {target.textContent = 'Last market update: unavailable'; return;}
@@ -13,6 +13,8 @@ function showFreshness() {
   const level = minutes >= 30 ? 'STALE' : minutes >= 15 ? 'DELAYED' : 'FRESH';
   target.textContent = `Last market update: ${marketFetchedAt.toLocaleString()} (${age}) · ${level}${minutes >= 30 ? ' — check prices before buying' : ''}`;
   target.style.color = minutes >= 30 ? '#f87171' : minutes >= 15 ? '#fbbf24' : '#86efac';
+  const notice = $('marketNotice');
+  if (notice) notice.textContent = minutes >= 30 ? `WARNING: These are historical price estimates from ${age}. The market feed is delayed; verify GE offers before buying.` : minutes >= 15 ? 'The market feed is running behind. Verify GE prices before making large purchases.' : 'Market snapshot is recent. GE offers can still fill at different prices.';
 }
 
 async function getJson(path) {
@@ -77,7 +79,7 @@ function render() {
     $('matches').textContent=fmt(count);
     $('bestBatch').textContent=results.length?`${fmt(results[0].batchProfit)} GP`:'—';
     const root=$('cards');root.replaceChildren();
-    if(!results.length){root.append(el('p','empty','No profitable F2P items passed your current filters. Try a lower minimum volume, larger budget, or a smaller price cushion.'));return;}
+    if(!results.length){root.append(el('p','empty','No profitable F2P items passed the filters in this market snapshot. This does not mean nothing is profitable now. Try reducing minimum hourly volume or price cushion, or check again when the feed refreshes.'));return;}
     results.forEach((item,i)=>{
       const card=el('article','item');
       const top=el('div','itemtop');top.append(el('span','rank',`#${i+1} OPPORTUNITY`),el('span','rank',`${fmt(item.volume)} buys / hr`));card.append(top);
@@ -94,7 +96,9 @@ function render() {
       const bottom=el('div','bottom');bottom.append(el('span','',`Last instant buy: ${item.ageMinutes} min ago`));
       const link=el('a','', 'View GE prices ↗');link.href=`https://prices.runescape.wiki/osrs/item/${item.id}`;link.target='_blank';link.rel='noopener noreferrer';bottom.append(link);card.append(bottom);root.append(card);
     });
-    $('status').className='status';$('status').textContent='● Market data loaded';
+    const snapshotMinutes = marketFetchedAt ? (Date.now()-marketFetchedAt.getTime())/60000 : Infinity;
+    $('status').className = snapshotMinutes >= 30 ? 'status error' : 'status';
+    $('status').textContent = snapshotMinutes >= 30 ? '⚠ Market data delayed — historical estimates' : '● Market data loaded';
   }catch(err){$('status').className='status error';$('status').textContent=err.message;$('cards').replaceChildren(el('p','empty',err.message));}
 }
 async function refresh() {
@@ -107,17 +111,31 @@ async function refresh() {
       if (!response.ok) throw new Error(`Cached market data returned ${response.status}`);
       snapshot = await response.json();
       if (!Array.isArray(snapshot.mapping) || !snapshot.latest?.data || !snapshot.hourly?.data) throw new Error('Cached market data is malformed');
+      // When GitHub Actions is delayed, prefer a live feed where the browser permits it.
+      if (Date.now() - new Date(snapshot.fetchedAt).getTime() > 30 * 60000) {
+        try {
+          const [mapping,latest,hourly] = await Promise.all([getJson('mapping'),getJson('latest'),getJson('1h')]);
+          snapshot = {mapping,latest,hourly,fetchedAt:new Date().toISOString()};
+          marketSource = 'live';
+        } catch (ignored) {
+          marketSource = 'snapshot';
+          // Keep the cached results, clearly marked stale, instead of showing a false empty market.
+        }
+      } else {
+        marketSource = 'snapshot';
+      }
     } catch (cachedError) {
       try {
         const [mapping,latest,hourly] = await Promise.all([getJson('mapping'),getJson('latest'),getJson('1h')]);
         snapshot = {mapping,latest,hourly,fetchedAt:new Date().toISOString()};
+        marketSource = 'live';
       } catch (liveError) {
         throw new Error(`Cached feed: ${cachedError.message}; live feed: ${liveError.message}`);
       }
     }
     market={mapping:snapshot.mapping,latest:snapshot.latest,hourly:snapshot.hourly};
     marketFetchedAt = new Date(snapshot.fetchedAt);
-    if (!Number.isFinite(marketFetchedAt.getTime())) marketFetchedAt = null;
+    if (!marketFetchedAt || !Number.isFinite(marketFetchedAt.getTime())) marketFetchedAt = null;
     showFreshness();
     $('updated').textContent=`Price snapshot ${new Date(snapshot.fetchedAt || Date.now()).toLocaleString()}`;
     render();
